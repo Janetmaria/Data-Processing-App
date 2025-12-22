@@ -41,22 +41,4 @@ The first phase focuses on building the core foundation (core engine) of the app
 
 This phase aims to deliver a functional prototype that demonstrates the core capabilities of the system.
 
-## Individual tasks
-
-## P
-
-    hour
-
-## A
-
-    segi
-
-## J
-
-    snkvi
-
-## D
-
-    sgio
-
 **HOPE YOU GUYS HAVE FUN WHILE WORKING ON IT :)**
