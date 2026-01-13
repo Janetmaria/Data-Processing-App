@@ -3,6 +3,27 @@ class Dataset:
         self.name = name
         self.df = dataframe
         self.is_temporary = temporary
+        self.history = [dataframe.copy()]  # Store history for undo/reset
+
+    def save_state(self):
+        """Save current state to history"""
+        self.history.append(self.df.copy())
+
+    def undo(self):
+        """Undo last operation"""
+        if len(self.history) > 1:
+            self.df = self.history[-2].copy()
+            self.history = self.history[:-1]
+            return True
+        return False
+
+    def reset(self):
+        """Reset to original state"""
+        if len(self.history) > 1:
+            self.df = self.history[0].copy()
+            self.history = [self.history[0].copy()]  # Reset history to just original
+            return True
+        return False
 
 class DatasetManager:
     def __init__(self):

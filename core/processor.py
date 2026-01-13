@@ -22,6 +22,24 @@ def standardize_data(df):
             df_copy[col] = pd.to_numeric(df_copy[col], errors='ignore')
     return df_copy
 
+def standardize_column(df, column, method, **kwargs):
+    df_copy = df.copy()
+    if method == 'lowercase':
+        df_copy[column] = df_copy[column].str.lower()
+    elif method == 'uppercase':
+        df_copy[column] = df_copy[column].str.upper()
+    elif method == 'title':
+        df_copy[column] = df_copy[column].str.title()
+    elif method == 'strip':
+        df_copy[column] = df_copy[column].str.strip()
+    elif method == 'round':
+        decimals = kwargs.get('decimals', 0)
+        df_copy[column] = df_copy[column].round(decimals)
+    elif method == 'to_numeric':
+        df_copy[column] = pd.to_numeric(df_copy[column], errors='ignore')
+    # Add more methods as needed
+    return df_copy
+
 # -------- Cross-file operation (example merge) --------
 def merge_datasets(dfs):
     return pd.concat(dfs, ignore_index=True)
