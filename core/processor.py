@@ -14,32 +14,62 @@ def handle_missing_values(df, method="delete", fill_value=None):
     return df
 
 def standardize_data(df):
+    """Standardize entire dataframe based on column types"""
     df_copy = df.copy()
     for col in df_copy.columns:
         if df_copy[col].dtype == object:
-            df_copy[col] = df_copy[col].str.strip().str.lower()
+            # Apply strip and lowercase (equivalent to previous logic)
+            df_copy = standardize_column(df_copy, col, 'strip')
+            df_copy = standardize_column(df_copy, col, 'lowercase')
         else:
-            df_copy[col] = pd.to_numeric(df_copy[col], errors='ignore')
+            df_copy = standardize_column(df_copy, col, 'to_numeric')
     return df_copy
 
 def standardize_column(df, column, method, **kwargs):
+    """Apply specific standardization to a single column"""
     df_copy = df.copy()
+    col_data = df_copy[column]
+
     if method == 'lowercase':
-        df_copy[column] = df_copy[column].str.lower()
+        df_copy[column] = col_data.str.lower()
     elif method == 'uppercase':
-        df_copy[column] = df_copy[column].str.upper()
+        df_copy[column] = col_data.str.upper()
     elif method == 'title':
-        df_copy[column] = df_copy[column].str.title()
+        df_copy[column] = col_data.str.title()
     elif method == 'strip':
-        df_copy[column] = df_copy[column].str.strip()
+        df_copy[column] = col_data.str.strip()
     elif method == 'round':
         decimals = kwargs.get('decimals', 0)
-        df_copy[column] = df_copy[column].round(decimals)
+        df_copy[column] = col_data.round(decimals)
     elif method == 'to_numeric':
-        df_copy[column] = pd.to_numeric(df_copy[column], errors='ignore')
-    # Add more methods as needed
+        df_copy[column] = pd.to_numeric(col_data, errors='ignore')
+    
     return df_copy
 
 # -------- Cross-file operation (example merge) --------
 def merge_datasets(dfs):
-    return pd.concat(dfs, ignore_index=True)
+    if not dfs:
+        return pd.DataFrame()
+
+    # 1. Check if all datasets have identical columns (Case: Append/Union)
+    first_cols = set(dfs[0].columns)
+    all_same_cols = all(set(df.columns) == first_cols for df in dfs[1:])
+
+    if all_same_cols:
+        # Vertical stack + remove duplicates
+        return pd.concat(dfs, ignore_index=True).drop_duplicates()
+    
+    # 2. Otherwise try to merge on common columns (Case: Join)
+    merged_df = dfs[0]
+    for df_next in dfs[1:]:
+        # Find intersection of columns
+        common_cols = list(set(merged_df.columns) & set(df_next.columns))
+        
+        if common_cols:
+            # Relational merge (outer join to keep all data)
+            merged_df = pd.merge(merged_df, df_next, on=common_cols, how='outer')
+        else:
+            # No shared keys, just append (will create NaNs)
+            merged_df = pd.concat([merged_df, df_next], ignore_index=True)
+            
+    return merged_df

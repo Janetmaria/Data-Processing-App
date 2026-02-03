@@ -2,93 +2,77 @@ import pandas as pd
 import numpy as np
 import os
 import random
+from datetime import datetime, timedelta
 
-# Create directory
 os.makedirs("test_data", exist_ok=True)
 
-# 1. Clean Users: Baseline valid data
+# Helper to generate dates
+def random_dates(start, end, n):
+    start_u = start.value//10**9
+    end_u = end.value//10**9
+    return [datetime.fromtimestamp(random.randint(start_u, end_u)).strftime("%Y-%m-%d") for _ in range(n)]
+
+# 1. Employees (Clean Baseline) - 50 Rows
 data1 = {
-    "ID": range(1, 41),
-    "Name": [f"User_{i}" for i in range(1, 41)],
-    "Role": [random.choice(["Admin", "Editor", "Viewer"]) for _ in range(40)],
-    "Age": [random.randint(20, 60) for _ in range(40)],
-    "Active": [random.choice([True, False]) for _ in range(40)]
+    "EmployeeID": range(1001, 1051),
+    "FullName": [f"Employee_{i}" for i in range(1, 51)],
+    "Department": [random.choice(["HR", "Engineering", "Sales", "Marketing"]) for _ in range(50)],
+    "Salary": [random.randint(40000, 120000) for _ in range(50)],
+    "Status": ["Active"] * 50
 }
-pd.DataFrame(data1).to_csv("test_data/1_clean_users.csv", index=False)
+pd.DataFrame(data1).to_csv("test_data/1_Employees.csv", index=False)
 
-# 2. Missing Values Sales (Excel): Tests handling of NaNs
-data2 = {
-    "Product": [f"Prod_{i}" for i in range(1, 41)],
-    "Quantity": [random.choice([1, 5, 10, np.nan]) for _ in range(40)],
-    "Price": [random.choice([10.5, 99.99, np.nan, 5.0]) for _ in range(40)],
-    "Region": ["North", "South", "East", "West"] * 10
-}
-pd.DataFrame(data2).to_excel("test_data/2_missing_values_sales.xlsx", index=False)
+# 2. Sales Data (Excel, Missing Values) - 50 Rows
+# Intentionally removing some values to test "Handle Missing"
+products = ["Widget A", "Widget B", "Gadget X", "Gadget Y", "Tool Z"]
+rows = []
+for i in range(50):
+    rows.append({
+        "TransactionID": f"TXN_{i+1}",
+        "Product": random.choice(products),
+        "Quantity": random.choice([1, 2, 5, 10, np.nan]) if i % 10 != 0 else np.nan, # 10% missing
+        "Price": random.uniform(10.0, 500.0) if i % 15 != 0 else np.nan, # ~7% missing
+        "Date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+    })
+pd.DataFrame(rows).to_excel("test_data/2_Sales_Missing_Values.xlsx", index=False)
 
-# 3. Duplicates Logs: Tests remove_duplicates
-data3 = {
-    "Timestamp": pd.date_range(start="2023-01-01", periods=10, freq="h").tolist() * 4,
-    "Event": ["Login", "Logout", "View", "Click", "Error"] * 2 * 4,
-    "UserID": [101, 102, 103, 104, 105] * 2 * 4
-}
-pd.DataFrame(data3).to_csv("test_data/3_duplicates_logs.csv", index=False)
+# 3. Inventory (Duplicates & Messy Text) - 60 Rows (to allow for removal)
+# Tests "Remove Duplicates" and "Standardize Data"
+items = ["  Laptop ", "laptop", "LAPTOP  ", " Mouse", "MOUSE", "KeyBoard", "monitor "]
+raw_data = []
+for i in range(50):
+    raw_data.append([random.choice(items), random.randint(1, 100), "Warehouse A"])
+# Add 10 duplicates
+for _ in range(10):
+    raw_data.append(raw_data[random.randint(0, 49)])
 
-# 4. Messy Text Inventory: Tests standardize_data (strip, lowercase)
-item_names = ["  apple ", "Apple", "APPLE  ", " baNana", "Orange", "orange ", "  GRAPE  ", "Melon"] * 5
-data4 = {
-    "ItemName": item_names,
-    "Category": ["Fruit"] * 40,
-    "Stock": [random.randint(0, 100) for _ in range(40)]
-}
-pd.DataFrame(data4).to_csv("test_data/4_messy_text_inventory.csv", index=False)
+pd.DataFrame(raw_data, columns=["Item_Name", "Stock_Count", "Location"]).to_csv("test_data/3_Inventory_Messy_Duplicates.csv", index=False)
 
-# 5. Mixed Types Feedback: Tests to_numeric errors/coercion
-ratings = [1, 5, "Five", 3.5, "Three", 4, 2, "N/A", 5, 1] * 4
-data5 = {
-    "Rating": ratings,
-    "Comment": [f"Comment {i}" for i in range(40)]
-}
-pd.DataFrame(data5).to_csv("test_data/5_mixed_types_feedback.csv", index=False)
+# 4. Merge Data A (Main) - 50 Rows
+df_a = pd.DataFrame({
+    "UserID": range(1, 51),
+    "Username": [f"User_{i}" for i in range(1, 51)],
+    "Email": [f"user{i}@example.com" for i in range(1, 51)]
+})
+df_a.to_csv("test_data/4_Merge_Users_Base.csv", index=False)
 
-# 6. Large Numbers Finance: Tests numeric precision/display
-data6 = {
-    "TransactionID": range(1000, 1040),
-    "Amount": [random.uniform(1e6, 1e9) for _ in range(40)],
-    "Account": [random.randint(100000000000, 999999999999) for _ in range(40)]
-}
-pd.DataFrame(data6).to_csv("test_data/6_large_numbers_finance.csv", index=False)
+# 5. Merge Data B (Extensions) - 50 Rows (Same IDs)
+# Tests the "Join" logic we implemented
+df_b = pd.DataFrame({
+    "UserID": range(1, 51),
+    "LoginCount": [random.randint(1, 500) for _ in range(50)],
+    "LastLogin": random_dates(pd.to_datetime('2023-01-01'), pd.to_datetime('2023-12-31'), 50)
+})
+df_b.to_csv("test_data/5_Merge_Users_Activity.csv", index=False)
 
-# 7. Dates Events: Tests date parsing (which is missing)
-dates = ["2023-01-01", "01/02/2023", "Mar 3, 2023", "2023.04.05", "May-06-2023"] * 8
-data7 = {
-    "EventName": [f"Event_{i}" for i in range(40)],
-    "Date": dates
-}
-pd.DataFrame(data7).to_csv("test_data/7_dates_events.csv", index=False)
+# 6. Merge Data C (Append with Overlap) - IDs 30 to 80
+# Base has 1-50. This has 30-80. Overlap is 30-50.
+# Merging 4 and 6 should result in 80 unique rows (1-80).
+df_c = pd.DataFrame({
+    "UserID": range(30, 81),
+    "Username": [f"User_{i}" for i in range(30, 81)],
+    "Email": [f"user{i}@example.com" for i in range(30, 81)]
+})
+df_c.to_csv("test_data/6_Merge_Users_Append.csv", index=False)
 
-# 8. Merge Part 1 Employees: For merge test
-data8 = {
-    "ID": range(1, 21),
-    "Name": [f"Emp_{i}" for i in range(1, 21)],
-    "Dept": ["HR", "IT", "Sales", "Marketing"] * 5
-}
-pd.DataFrame(data8).to_csv("test_data/8_merge_part1_employees.csv", index=False)
-
-# 9. Merge Part 2 Employees: For merge test (overlaps)
-data9 = {
-    "ID": range(15, 35), # Overlap 15-20
-    "Name": [f"Emp_{i}" for i in range(15, 35)],
-    "Dept": ["HR", "IT", "Sales", "Marketing"] * 5
-}
-pd.DataFrame(data9).to_csv("test_data/9_merge_part2_employees.csv", index=False)
-
-# 10. Security Edge Cases: CSV Injection, large strings
-malicious = ["=1+1", "@SUM(1+1)", "-1+1", "+1+1", "Safe", "Normal", "Drop Tables", "<script>alert(1)</script>"] * 5
-long_str = ["A" * 1000, "B" * 5000, "Short", "Normal"] * 10
-data10 = {
-    "Input": malicious,
-    "Notes": long_str
-}
-pd.DataFrame(data10).to_csv("test_data/10_security_edge_cases.csv", index=False)
-
-print("Test datasets generated in 'test_data/' directory.")
+print("Generated 6 cleaned datasets (including new overlap test) in test_data/.")

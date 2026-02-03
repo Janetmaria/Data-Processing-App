@@ -341,10 +341,13 @@ class DataProcessingApp:
             messagebox.showwarning("No Dataset", "No active dataset")
             return
         top = tk.Toplevel(self.root)
-        top.title(f"Preview: {ds.name}")
-        text = tk.Text(top, width=100, height=30)
-        text.pack()
-        text.insert(tk.END, str(ds.df.head(20)))
+        top.title(f"Preview: {ds.name} | Shape: {ds.df.shape}")
+        text = tk.Text(top, width=120, height=40)
+        text.pack(expand=True, fill=tk.BOTH)
+        
+        # Show info and first 100 rows
+        info = f"Total Rows: {len(ds.df)}\nTotal Columns: {len(ds.df.columns)}\n\n"
+        text.insert(tk.END, info + ds.df.head(100).to_string())
 
     # ---------------- Export ----------------
     def export_dataset(self):
